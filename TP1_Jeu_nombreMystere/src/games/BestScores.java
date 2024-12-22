@@ -1,168 +1,142 @@
 package games;
 
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import org.bson.Document;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class BestScores {
 
-    // Nb scores max
     private int max_scores;
-    // Nb scores max par défaut
     public static int DEFAULT_MAX_SCORES = 10;
-    // Les scores
-    Score[] scores;
-    // Nb scores courant
-    int nb_scores = 0;
-    // Ordre des scores : croissant, décroissant
+    private Score[] scores;
+    private int nb_scores = 0;
     private E_ORDER_BY order_by;
+    private String gameType; // Type de jeu (par ex. "MysteryNumber")
+    private static final String DB_NAME = "game_scores_db";
+    private static final String COLLECTION_NAME = "best_scores";
 
     public static enum E_ORDER_BY {
         ASC, DESC
     }
 
-    // Constructeur par défaut, sans argument
-    public BestScores() {
-        super();
-    }
-
-    // Constructeur avec ordre
-    public BestScores(E_ORDER_BY order_by) {
-        this(order_by, BestScores.DEFAULT_MAX_SCORES);
-    }
-
-    // Constructeur avec ordre et taille maximale
-    public BestScores(E_ORDER_BY order_by, int max_scores) {
-        super();
+    public BestScores(String gameType, E_ORDER_BY order_by, int max_scores) {
+        this.gameType = gameType;
         this.order_by = order_by;
         this.max_scores = max_scores;
         this.scores = new Score[this.max_scores];
-        this.nb_scores = 0;
     }
 
-    // Compare deux scores A et B
+    public BestScores(String gameType, E_ORDER_BY order_by) {
+        this(gameType, order_by, DEFAULT_MAX_SCORES);
+    }
+
     private boolean is_better(int valueA, int valueB) {
-        if (this.order_by == BestScores.E_ORDER_BY.ASC && valueA < valueB) {
-            return true;
-        }
-        if (this.order_by == BestScores.E_ORDER_BY.DESC && valueA > valueB) {
-            return true;
-        }
-        return false;
+        return this.order_by == E_ORDER_BY.ASC ? valueA < valueB : valueA > valueB;
     }
 
-    // Position du score dans la liste
     private int get_position(int new_score) {
         for (int i = 0; i < this.nb_scores; i++) {
-            Score score = this.scores[i];
-            if (this.is_better(new_score, score.value)) {
+            if (this.is_better(new_score, this.scores[i].value)) {
                 return i;
             }
         }
         return this.nb_scores;
     }
 
-    // Définit si un score fait partie des meilleurs scores
     public boolean is_scoring(int new_score) {
         return this.nb_scores < this.max_scores || this.is_better(new_score, this.scores[this.nb_scores - 1].value);
     }
 
-    // Ajout d'un score
     public void add_score(int value, String who, String when) {
         int pos = this.get_position(value);
-
-        // Si le score n'est pas dans les meilleurs, ignorer
         if (pos >= this.max_scores) {
             return;
         }
-
-        // Décaler les scores pour faire de la place
         for (int i = this.max_scores - 1; i > pos; i--) {
             this.scores[i] = this.scores[i - 1];
         }
-
-        // Insérer le score à la position trouvée
         this.scores[pos] = new Score(value, who, when);
-
-        // Incrémenter le compteur si la liste n'est pas pleine
         if (this.nb_scores < this.max_scores) {
             this.nb_scores++;
         }
     }
 
-    // Ajout d'un score avec date actuelle
     public void add_score(int value, String who) {
         this.add_score(value, who, new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date()));
     }
 
-    // Ajout d'un score à partir d'un objet Score
     public void add_score(Score score) {
         this.add_score(score.value, score.who, score.when);
     }
 
-    // Conversion String pour affichage
     public String toString() {
-        String s = "";
+        StringBuilder sb = new StringBuilder("Game: " + this.gameType + "\n");
         for (int i = 0; i < this.nb_scores; i++) {
             Score score = this.scores[i];
-            s += (i + 1) + " - " + score.value + ", " + score.who + ", " + score.when + "\n";
+            sb.append((i + 1)).append(" - ").append(score.value).append(", ").append(score.who).append(", ").append(score.when).append("\n");
         }
-        return s;
+        return sb.toString();
     }
 
-    // Affichage des scores sur console
     public void write() {
-        for (int i = 0; i < this.nb_scores; i++) {
-            Score score = this.scores[i];
-            System.out.println((i + 1) + " - " + score.value + ", " + score.who + ", " + score.when);
+        System.out.println(this.toString());
+    }
+
+    public void save() throws Exception {
+        try (MongoClient client = new MongoClient("localhost", 27017)) {
+            MongoDatabase database = client.getDatabase(DB_NAME);
+            MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
+
+            collection.deleteMany(new Document("gameType", this.gameType)); // Clear previous data for the game type
+
+            for (int i = 0; i < this.nb_scores; i++) {
+                Score score = this.scores[i];
+                Document doc = new Document("gameType", this.gameType)
+                        .append("position", i + 1)
+                        .append("value", score.value)
+                        .append("who", score.who)
+                        .append("when", score.when);
+                collection.insertOne(doc);
+            }
         }
     }
 
-    // Chargement des scores depuis la sauvegarde
     public void load() throws Exception {
-        throw new Exception("Not yet implemented !!! A vous de compléter, y compris la signature / les paramètres selon vos besoins !!!");
-    }
+        try (MongoClient client = new MongoClient("localhost", 27017)) {
+            MongoDatabase database = client.getDatabase(DB_NAME);
+            MongoCollection<Document> collection = database.getCollection(COLLECTION_NAME);
 
-    // Sauvegarde des scores
-    public void save() throws Exception {
-        throw new Exception("Not yet implemented !!! A vous de compléter, y compris la signature / les paramètres selon vos besoins !!!");
+            var cursor = collection.find(new Document("gameType", this.gameType)).sort(new Document("position", 1)).iterator();
+            this.nb_scores = 0;
+
+            while (cursor.hasNext()) {
+                Document doc = cursor.next();
+                int value = doc.getInteger("value");
+                String who = doc.getString("who");
+                String when = doc.getString("when");
+
+                this.scores[this.nb_scores++] = new Score(value, who, when);
+            }
+        }
     }
 
     public static void main(String[] args) throws Exception {
-        /* Unit tests */
-
-        // Init d'un BestScores de 5 scores, dans l'ordre croissant
-        BestScores best_scores = new BestScores(BestScores.E_ORDER_BY.ASC, 5);
-
-        // Ajout d'un score
-        best_scores.add_score(12, "A");
-        best_scores.add_score(15, "B");
-
-        // Teste si un score peut rentrer dans les meilleurs scores
-        System.out.println(best_scores.is_scoring(16)); // true
-        System.out.println(best_scores.is_scoring(14)); // true
-        System.out.println(best_scores.is_scoring(11)); // true
-
-        // Ajout de scores
-        best_scores.add_score(21, "C");
-        best_scores.add_score(14, "D");
-        best_scores.add_score(33, "E");
-
-        // Affichage
+        // Test for MysteryNumber
+        BestScores best_scores = new BestScores("MysteryNumber", E_ORDER_BY.ASC, 5);
         best_scores.write();
-        System.out.println(best_scores);
 
-        // Sauvegarde XML (non implémentée)
-        try {
-            best_scores.save();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // Save scores
+        best_scores.save();
+        System.out.println("Scores saved to MongoDB.");
 
-        // Chargement XML (non implémenté)
-        try {
-            best_scores.load();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // Load scores
+        BestScores loaded_scores = new BestScores("MysteryNumber", E_ORDER_BY.ASC, 5);
+        loaded_scores.load();
+        System.out.println("Loaded scores:");
+        loaded_scores.write();
     }
 }

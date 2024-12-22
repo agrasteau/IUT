@@ -4,7 +4,7 @@ public class Play {
 
     public static void main(String[] args) {
         MysteryNumber mystery_level1 = new MysteryNumber(10);
-        BestScores mystery_level1_sc = new BestScores(BestScores.E_ORDER_BY.ASC, 10);
+        BestScores mystery_level1_sc = new BestScores("MysteryNumber",BestScores.E_ORDER_BY.ASC, 10);
 
         try {
             mystery_level1_sc.load(); // Charger les scores au démarrage
