@@ -1,25 +1,16 @@
-package TD6;
+package TD5;
 
-import TD2.Clavier;
+import java.io.*;
 
 public class ex2 {
-
-	public static void main(String[] args) {
-
-		double n, s = 0, star = 0, p = 0;
-		System.out.println("renseigner la somme de fraction de rang n");
-		n = Clavier.lireDouble();
-		System.out.print("*");
-		while (n > s) {
-			s = s + 1;
-			p=0;
-			star = star + 2;
-			System.out.println("");
-			while (p < star) {
-				p = p + 1;
-				System.out.print("*");
+	public static void main(String[] args) throws IOException {
+		String nomfich ="toto.txt";
+			BufferedReader entree = new BufferedReader(new FileReader(nomfich));
+			while (entree.ready()) {
+				System.out.println(entree.readLine());
 			}
-		}
+			entree.close();
 	}
+
 }
-//affiche une pyramide non centré de hauteur n renseigner par l'utilisateur
+// lit l'intégramot du fichier texte toto.txt si dans mm répertoire

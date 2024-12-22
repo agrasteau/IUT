@@ -1,25 +1,20 @@
-package TD5;
+package TD6;
 
 import TD2.Clavier;
-import java.io.*;
 
 public class ex1 {
 
-	public static void main(String[] args) throws IOException {
-		String nomfich = "toto.txt";
-		int a = 0;
-		PrintWriter f = new PrintWriter(new FileWriter(nomfich));
-		System.out.println("renseigner valeur");
-		a = Clavier.lireInt();
-		if (a != 0) {
+	public static void main(String[] args) {
+		double n,s=0 ;
+		System.out.println("renseigner la somme de fraction de rang n");
+		n = Clavier.lireDouble();
+		for (int i = 1; i <= n; i++) {
+			s=s+(double)1/i;
+			System.out.println(s);
 
-			f.println(a + " à pour carré " + a * a);
-		}
-
-		f.close();
 	}
-	
 
+		System.out.println(s);
+	}
 }
-//ecrit un nombre saisi par l'utilisateur et affiche son carrée dans un fichier toto.txt
-
+	
