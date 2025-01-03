@@ -1,0 +1,8 @@
+
+/target/site/jacoco
+/target/surefire-reports
+/target/maven-status
+/RemoteSystemsTempFiles
+target/jacoco.exec
+target/maven-archiver/pom.properties
+target/order-management-1.0-SNAPSHOT.jar
