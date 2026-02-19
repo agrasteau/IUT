@@ -4,7 +4,7 @@
 SPORTCOM = ([System.IO.Ports.SerialPort] :: GetPortNames())[o]
 
 SBAUDRATE = 9600
-SParity
+SParity   = [System.IO.Ports.Parity] :: None
 Sdatabits = 8
 Sstopbits = [System.IO.Ports.StopBits] :: One
 
